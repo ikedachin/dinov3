@@ -158,7 +158,11 @@ class SmoothedValue:
         """
         if not distributed.is_enabled():
             return
-        t = torch.tensor([self.count, self.total], dtype=torch.float64, device="cuda")
+        # original
+        # t = torch.tensor([self.count, self.total], dtype=torch.float64, device="cuda")
+        # change
+        from dinov3.utils import get_device
+        t = torch.tensor([self.count, self.total], dtype=torch.float64, device=get_device())
         torch.distributed.barrier()
         torch.distributed.all_reduce(t)
         t = t.tolist()

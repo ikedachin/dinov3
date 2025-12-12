@@ -258,7 +258,11 @@ def enable_distributed(
         nccl_async_error_handling=nccl_async_error_handling,
     )
 
-    if set_cuda_current_device:
+    # original
+    # if set_cuda_current_device:
+    #     torch.cuda.set_device(torch_env.local_rank)
+    # change
+    if set_cuda_current_device and torch.cuda.is_available():
         torch.cuda.set_device(torch_env.local_rank)
 
     dist.init_process_group(backend="nccl", timeout=timeout)
