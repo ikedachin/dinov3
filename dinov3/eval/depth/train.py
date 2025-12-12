@@ -162,8 +162,14 @@ def run_epochs(config: DepthConfig, backbone: torch.nn.Module, autocast_dtype: t
         autocast_dtype=autocast_dtype,
     )
     depther.train()
-    if torch.cuda.is_available():
-        depther = depther.cuda()
+    # original
+    # if torch.cuda.is_available():
+    #     depther = depther.cuda()
+    # change
+    from dinov3.utils import get_device
+    device = get_device()
+    if torch.cuda.is_available() or hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        depther = depther.to(device)
     optim_param_groups.append(
         {
             "params": depther.decoder.parameters(),
@@ -190,7 +196,10 @@ def run_epochs(config: DepthConfig, backbone: torch.nn.Module, autocast_dtype: t
     train_dataloader = build_dataloader(
         transforms=train_transforms,
         dataset_str=getattr(config.datasets, "train") + f":root={config.datasets.root}",
-        device=torch.cuda.current_device(),
+        # original
+        # device=torch.cuda.current_device(),
+        # change
+        device=distributed.get_rank() if torch.cuda.is_available() else 0,
         split="train",
         batch_size=config.bs,
         n_gpus=n_gpus,
@@ -201,7 +210,10 @@ def run_epochs(config: DepthConfig, backbone: torch.nn.Module, autocast_dtype: t
     val_dataloader = build_dataloader(
         transforms=val_transforms,
         dataset_str=getattr(config.datasets, "val") + f":root={config.datasets.root}",
-        device=torch.cuda.current_device(),
+        # original
+        # device=torch.cuda.current_device(),
+        # change
+        device=distributed.get_rank() if torch.cuda.is_available() else 0,
         split="val",
         batch_size=1,
         n_gpus=n_gpus,

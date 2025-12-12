@@ -234,7 +234,12 @@ class Transformer(nn.Module):
         enc_outputs_delta = None
         enc_outputs_coord_unact = self.decoder.bbox_embed[self.decoder.num_layers](output_memory) + output_proposals
 
-        topk = self.two_stage_num_proposals
+        # original
+        # topk = self.two_stage_num_proposals
+        # topk_proposals = torch.topk(enc_outputs_class[..., 0], topk, dim=1)[1]
+        # change: clamp topk to the number of available proposals to avoid 'k out of range'
+        avail = enc_outputs_class.shape[1]
+        topk = int(min(self.two_stage_num_proposals, avail)) if avail > 0 else 1
         topk_proposals = torch.topk(enc_outputs_class[..., 0], topk, dim=1)[1]
         topk_coords_unact = torch.gather(enc_outputs_coord_unact, 1, topk_proposals.unsqueeze(-1).repeat(1, 1, 4))
         topk_coords_unact = topk_coords_unact.detach()
@@ -295,9 +300,20 @@ class Transformer(nn.Module):
             if not self.mixed_selection:
                 query_embed, tgt = torch.split(pos_trans_out, c, dim=2)
             else:
-                # query_embed here is the content embed for deformable DETR
-                tgt = query_embed.unsqueeze(0).expand(bs, -1, -1)
+                # original
+                # tgt = query_embed.unsqueeze(0).expand(bs, -1, -1)
+                # query_embed, _ = torch.split(pos_trans_out, c, dim=2)
+                # change: ensure tgt length matches pos_trans_out when pos_trans_out has fewer proposals
+                q_e = query_embed
+                if q_e is not None and q_e.shape[0] != pos_trans_out.shape[1]:
+                    q_e = q_e[: pos_trans_out.shape[1], :]
+                tgt = q_e.unsqueeze(0).expand(bs, -1, -1)
                 query_embed, _ = torch.split(pos_trans_out, c, dim=2)
+                # change: if self_attn_mask was created for a larger number of queries, truncate it
+            if self_attn_mask is not None and pos_trans_out is not None:
+                L = pos_trans_out.shape[1]
+                if self_attn_mask.shape[0] != L:
+                    self_attn_mask = self_attn_mask[:L, :L]
         else:
             query_embed, tgt = torch.split(query_embed, c, dim=1)
             query_embed = query_embed.unsqueeze(0).expand(bs, -1, -1)
@@ -395,7 +411,12 @@ class TransformerReParam(Transformer):
         enc_outputs_delta = self.decoder.bbox_embed[self.decoder.num_layers](output_memory)
         enc_outputs_coord_unact = box_xyxy_to_cxcywh(delta2bbox(output_proposals, enc_outputs_delta, max_shape))
 
-        topk = self.two_stage_num_proposals
+        # original
+        # topk = self.two_stage_num_proposals
+        # topk_proposals = torch.topk(enc_outputs_class[..., 0], topk, dim=1)[1]
+        # change: clamp topk to the number of available proposals to avoid 'k out of range'
+        avail = enc_outputs_class.shape[1]
+        topk = int(min(self.two_stage_num_proposals, avail)) if avail > 0 else 1
         topk_proposals = torch.topk(enc_outputs_class[..., 0], topk, dim=1)[1]
         topk_coords_unact = torch.gather(enc_outputs_coord_unact, 1, topk_proposals.unsqueeze(-1).repeat(1, 1, 4))
         topk_coords_unact = topk_coords_unact.detach()

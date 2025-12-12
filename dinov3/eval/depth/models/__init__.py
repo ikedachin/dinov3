@@ -173,12 +173,23 @@ class Depther(torch.nn.Module):
             bins_strategy=bins_strategy,
             norm_strategy=norm_strategy,
         )
+        # original
+        # if torch.cuda.is_available():
+        #     self.autocast_ctx = partial(torch.autocast, device_type="cuda", dtype=autocast_dtype, enabled=True)
+        #     self.encoder.cuda()
+        #     self.decoder.cuda()
+        # else:
+        #     self.autocast_ctx = partial(torch.autocast, device_type="cpu", enabled=True)
+        # change
+        from dinov3.utils import get_device
+        device = get_device()
+        device_type = "cuda" if torch.cuda.is_available() else "cpu"
         if torch.cuda.is_available():
-            self.autocast_ctx = partial(torch.autocast, device_type="cuda", dtype=autocast_dtype, enabled=True)
-            self.encoder.cuda()
-            self.decoder.cuda()
+            self.autocast_ctx = partial(torch.autocast, device_type=device_type, dtype=autocast_dtype, enabled=True)
         else:
-            self.autocast_ctx = partial(torch.autocast, device_type="cpu", enabled=True)
+            self.autocast_ctx = partial(torch.autocast, device_type=device_type, enabled=True)
+        self.encoder.to(device)
+        self.decoder.to(device)
 
     def forward(self, x):
         with self.autocast_ctx():
