@@ -159,9 +159,16 @@ def train_segmentation(
         dropout=config.decoder_head.dropout,
     )
     global_device = distributed.get_rank()
-    local_device = torch.cuda.current_device()
+    # original
+    # local_device = torch.cuda.current_device()
+    # segmentation_model = torch.nn.parallel.DistributedDataParallel(
+    #     segmentation_model.to(local_device), device_ids=[local_device]
+    # )  # should be local rank
+    # change
+    from dinov3.utils import get_device
+    local_device = get_device() if not torch.cuda.is_available() else torch.cuda.current_device()
     segmentation_model = torch.nn.parallel.DistributedDataParallel(
-        segmentation_model.to(local_device), device_ids=[local_device]
+        segmentation_model.to(local_device), device_ids=[local_device] if torch.cuda.is_available() else None
     )  # should be local rank
     model_parameters = filter(lambda p: p.requires_grad, segmentation_model.parameters())
     logger.info(f"Number of trainable parameters: {sum(p.numel() for p in model_parameters)}")

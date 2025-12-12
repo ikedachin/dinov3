@@ -20,8 +20,12 @@ EVAL_CONFIG_FNAME = "eval_config.yaml"
 
 
 def write_results(results_dict, output_dir, results_filename) -> None:
-    """Save only on main if cuda is available"""
-    if torch.cuda.is_available() and not dinov3.distributed.is_main_process():
+    """Save only on main process in distributed environments"""
+    # original
+    # if torch.cuda.is_available() and not dinov3.distributed.is_main_process():
+    #     return
+    # change
+    if dinov3.distributed.is_enabled() and not dinov3.distributed.is_main_process():
         return
     results_path = os.path.join(output_dir, results_filename)
     logger.info(f"Saving results to {results_path}")

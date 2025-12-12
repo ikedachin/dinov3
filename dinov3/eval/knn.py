@@ -239,7 +239,11 @@ def eval_knn(
     logger.info("Start the k-NN classification.")
     eval_metrics_dict: Dict[int, Dict[int, Dict[str, float]]] = {}  # {k: {try: {metric_name: metric_value}}}
     save_results = save_results_func is not None
-    device = torch.cuda.current_device()
+    # original
+    # device = torch.cuda.current_device()
+    # change
+    from dinov3.utils import get_device
+    device = get_device()
     partial_knn_module = partial(
         KnnModule,
         device=device,

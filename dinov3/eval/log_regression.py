@@ -145,12 +145,24 @@ class LogRegModule(nn.Module):
 def evaluate_logreg_model(*, logreg_model, test_metric, test_data_loader, save_results_func=None):
     key = "metrics"  # We need only one key as we have only one metric
     postprocessors, metrics = {key: logreg_model}, {key: test_metric}
+    # original
+    # _, eval_metrics, accumulated_results = evaluate(
+    #     nn.Identity(),
+    #     test_data_loader,
+    #     postprocessors,
+    #     metrics,
+    #     torch.cuda.current_device(),
+    #     accumulate_results=save_results_func is not None,
+    # )
+    # change
+    from dinov3.utils import get_device
+    device_id = distributed.get_rank() if torch.cuda.is_available() else 0
     _, eval_metrics, accumulated_results = evaluate(
         nn.Identity(),
         test_data_loader,
         postprocessors,
         metrics,
-        torch.cuda.current_device(),
+        device_id,
         accumulate_results=save_results_func is not None,
     )
     if save_results_func is not None:
@@ -348,7 +360,11 @@ def eval_log_regression_with_model(*, model: torch.nn.Module, autocast_dtype, co
 
     # Moves the model to cpu in-place. Deleting the variable would only delete a reference and not free any space.
     model.cpu()  # all features are extracted, we won't use the backbone anymore
-    torch.cuda.empty_cache()
+    # original
+    # torch.cuda.empty_cache()
+    # change
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     # Setting up metrics
     val_metric = build_classification_metric(config.train.val_metric_type, num_classes=num_classes, dataset=val_dataset)

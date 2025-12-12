@@ -49,7 +49,11 @@ def load_model_and_context(model_config: ModelConfig, output_dir: str) -> tuple[
             output_dir=output_dir,
         )
 
-    model.cuda()
+    # original
+    # model.cuda()
+    # change
+    from dinov3.utils import get_device
+    model.to(get_device())
     model.eval()
     return model, base_model_context
 

@@ -220,7 +220,11 @@ def setup_linear_classifiers(sample_output, n_last_blocks_list, learning_rates, 
                 linear_classifier = LinearClassifier(
                     out_dim, use_n_blocks=n, use_avgpool=avgpool, num_classes=num_classes
                 )
-                linear_classifier = linear_classifier.cuda()
+                # original
+                # linear_classifier = linear_classifier.cuda()
+                # change
+                from dinov3.utils import get_device
+                linear_classifier = linear_classifier.to(get_device())
                 linear_classifiers_dict[
                     f"classifier_{n}_blocks_avgpool_{avgpool}_lr_{lr:.5f}".replace(".", "_")
                 ] = linear_classifier
@@ -316,7 +320,10 @@ class Evaluator:
             self.data_loader,
             postprocessors,
             metrics,
-            torch.cuda.current_device(),
+            # original
+            # torch.cuda.current_device(),
+            # change
+            distributed.get_rank() if torch.cuda.is_available() else 0,
             accumulate_results=accumulate_results,
         )
 
@@ -473,9 +480,19 @@ def train_linear_classifiers(
     val_evaluator: Evaluator,
     checkpoint_output_dir: str,
 ):
+    # original
+    # (linear_classifiers, start_iter, max_iter, criterion, optimizer, scheduler, best_accuracy,) = setup_linear_training(
+    #     config=train_config,
+    #     sample_output=feature_model(train_dataset[0][0].unsqueeze(0).cuda()),
+    #     training_num_classes=training_num_classes,
+    #     checkpoint_output_dir=checkpoint_output_dir,
+    # )
+    # change
+    from dinov3.utils import get_device
+    device = get_device()
     (linear_classifiers, start_iter, max_iter, criterion, optimizer, scheduler, best_accuracy,) = setup_linear_training(
         config=train_config,
-        sample_output=feature_model(train_dataset[0][0].unsqueeze(0).cuda()),
+        sample_output=feature_model(train_dataset[0][0].unsqueeze(0).to(device)),
         training_num_classes=training_num_classes,
         checkpoint_output_dir=checkpoint_output_dir,
     )
@@ -507,8 +524,13 @@ def train_linear_classifiers(
         max_iter,
         start_iter,
     ):
-        data = data.cuda(non_blocking=True)
-        labels = labels.cuda(non_blocking=True)
+        # original
+        # data = data.cuda(non_blocking=True)
+        # labels = labels.cuda(non_blocking=True)
+        # change
+        model_device = next(feature_model.parameters()).device
+        data = data.to(model_device, non_blocking=True)
+        labels = labels.to(model_device, non_blocking=True)
 
         features = feature_model(data)
         outputs = linear_classifiers(features)
@@ -528,7 +550,11 @@ def train_linear_classifiers(
 
         # log
         if iteration % 10 == 0:
-            torch.cuda.synchronize()
+            # original
+            # torch.cuda.synchronize()
+            # change
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
             metric_logger.update(loss=loss.item())
             metric_logger.update(lr=optimizer.param_groups[0]["lr"])
 
@@ -597,7 +623,12 @@ def eval_linear_with_model(*, model: torch.nn.Module, autocast_dtype, config: Li
         few_shot_n_tries=config.few_shot.n_tries,
     )
     n_last_blocks = max(config.train.n_last_blocks_list)
-    autocast_ctx = partial(torch.autocast, device_type="cuda", enabled=True, dtype=autocast_dtype)
+    # original
+    # autocast_ctx = partial(torch.autocast, device_type="cuda", enabled=True, dtype=autocast_dtype)
+    # change
+    from dinov3.utils import get_device
+    device_type = "cuda" if torch.cuda.is_available() else "cpu"
+    autocast_ctx = partial(torch.autocast, device_type=device_type, enabled=True, dtype=autocast_dtype)
     feature_model = ModelWithIntermediateLayers(model, n_last_blocks, autocast_ctx)
 
     save_results_func = None

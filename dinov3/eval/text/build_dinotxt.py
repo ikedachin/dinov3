@@ -94,7 +94,11 @@ def compile_parallelize_and_init(
         replicate(model, device_mesh=world_mesh, bucket_cap_mb=100)
         if do_compile:
             model.compile()
-        model = model.to_empty(device="cuda")
+        # original
+        # model = model.to_empty(device="cuda")
+        # change
+        from dinov3.utils import get_device
+        model = model.to_empty(device=get_device())
         model.init_weights()
     else:
         logger.info("Wrap in FSDP, compile and initialize the model")

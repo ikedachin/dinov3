@@ -179,13 +179,23 @@ def extract_features(model, dataset, batch_size, num_workers, gather_on_cpu=Fals
 
 @torch.inference_mode()
 def extract_features_with_dataloader(model, data_loader, sample_count, gather_on_cpu=False):
-    gather_device = torch.device("cpu") if gather_on_cpu else torch.device("cuda")
+    # original
+    # gather_device = torch.device("cpu") if gather_on_cpu else torch.device("cuda")
+    # change
+    from dinov3.utils import get_device
+    gather_device = torch.device("cpu") if gather_on_cpu else get_device()
     metric_logger = MetricLogger(delimiter="  ")
     features, all_labels = None, None
     for samples, (index, labels_rank) in metric_logger.log_every(data_loader, 10):
-        samples = samples.cuda(non_blocking=True)
-        labels_rank = labels_rank.cuda(non_blocking=True)
-        index = index.cuda(non_blocking=True)
+        # original
+        # samples = samples.cuda(non_blocking=True)
+        # labels_rank = labels_rank.cuda(non_blocking=True)
+        # index = index.cuda(non_blocking=True)
+        # change
+        model_device = next(model.parameters()).device
+        samples = samples.to(model_device, non_blocking=True)
+        labels_rank = labels_rank.to(model_device, non_blocking=True)
+        index = index.to(model_device, non_blocking=True)
         features_rank = model(samples).float()
 
         # init storage feature matrix

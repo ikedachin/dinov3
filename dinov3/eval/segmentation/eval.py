@@ -98,8 +98,15 @@ def test_segmentation(backbone, config):
         )
         state_dict = torch.load(config.load_from, map_location="cpu")["model"]
         _, _ = segmentation_model.load_state_dict(state_dict, strict=False)
-    device = distributed.get_rank()
-    segmentation_model = torch.nn.parallel.DistributedDataParallel(segmentation_model.to(device), device_ids=[device])
+    # original
+    # device = distributed.get_rank()
+    # segmentation_model = torch.nn.parallel.DistributedDataParallel(segmentation_model.to(device), device_ids=[device])
+    # change
+    from dinov3.utils import get_device
+    device = get_device() if not torch.cuda.is_available() else distributed.get_rank()
+    segmentation_model = torch.nn.parallel.DistributedDataParallel(
+        segmentation_model.to(device), device_ids=[device] if torch.cuda.is_available() else None
+    )
 
     # 2- dataloader for testing
     eval_res = config.eval.crop_size

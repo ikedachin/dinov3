@@ -165,7 +165,11 @@ def ac_compile_parallelize_and_init(
     )
     fully_shard(clip_model.text_model.head, **fsdp_config, reshard_after_forward=True)
 
-    clip_model.to_empty(device="cuda")
+    # original
+    # clip_model.to_empty(device="cuda")
+    # change
+    from dinov3.utils import get_device
+    clip_model.to_empty(device=get_device())
     clip_model.init_weights()
 
     for model in inference_only_models:

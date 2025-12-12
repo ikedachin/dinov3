@@ -366,7 +366,10 @@ class MSDeformAttnPixelDecoder(nn.Module):
         self.lateral_convs = nn.ModuleList(lateral_convs[::-1])
         self.output_convs = nn.ModuleList(output_convs[::-1])
 
-    @autocast(device_type="cuda", enabled=False)
+    # original
+    # @autocast(device_type="cuda", enabled=False)
+    # change
+    @autocast(device_type="cuda" if torch.cuda.is_available() else "cpu", enabled=False)
     def forward_features(self, features):
         srcs = []
         pos = []

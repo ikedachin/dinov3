@@ -83,7 +83,11 @@ def build_segmentation_decoder(
     autocast_dtype=torch.float32,
 ):
     backbone_indices_to_use = _get_backbone_out_indices(backbone_model, backbone_out_layers)
-    autocast_ctx = partial(torch.autocast, device_type="cuda", enabled=True, dtype=autocast_dtype)
+    # original
+    # autocast_ctx = partial(torch.autocast, device_type="cuda", enabled=True, dtype=autocast_dtype)
+    # change
+    device_type = "cuda" if torch.cuda.is_available() else "cpu"
+    autocast_ctx = partial(torch.autocast, device_type=device_type, enabled=True, dtype=autocast_dtype)
     if decoder_type == "m2f":
         backbone_model = DINOv3_Adapter(
             backbone_model,

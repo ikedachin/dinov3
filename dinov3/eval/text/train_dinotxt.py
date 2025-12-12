@@ -163,7 +163,14 @@ def train(
     header = "Training"
     metric_logger = MetricLogger(delimiter="  ")
     gc.disable()
-    device_id = rank % torch.cuda.device_count()
+    # original
+    # device_id = rank % torch.cuda.device_count()
+    # change
+    from dinov3.utils import get_device
+    if torch.cuda.is_available():
+        device_id = rank % torch.cuda.device_count()
+    else:
+        device_id = get_device()
 
     for batch in metric_logger.log_every(
         train_data_loader,
@@ -234,7 +241,11 @@ def train(
                 output_dir=output_dir,
                 dtype_str=dtype_str,
             )
-            torch.cuda.synchronize()
+            # original
+            # torch.cuda.synchronize()
+            # change
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
         if (cur_iteration + 1) % gc_freq == 0:
             logger.info("Garbage collection...")
             gc.collect()

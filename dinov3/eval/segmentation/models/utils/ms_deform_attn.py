@@ -25,7 +25,10 @@ except ImportError:
 
 class MSDeformAttnFunction(Function):
     @staticmethod
-    @custom_fwd(device_type="cuda", cast_inputs=torch.float32)
+    # original
+    # @custom_fwd(device_type="cuda", cast_inputs=torch.float32)
+    # change
+    @custom_fwd(device_type="cuda" if torch.cuda.is_available() else "cpu", cast_inputs=torch.float32)
     def forward(
         ctx, value, value_spatial_shapes, value_level_start_index, sampling_locations, attention_weights, im2col_step
     ):
@@ -44,7 +47,10 @@ class MSDeformAttnFunction(Function):
 
     @staticmethod
     @once_differentiable
-    @custom_bwd(device_type="cuda")
+    # original
+    # @custom_bwd(device_type="cuda")
+    # change
+    @custom_bwd(device_type="cuda" if torch.cuda.is_available() else "cpu")
     def backward(ctx, grad_output):
         if MSDA is None:
             raise RuntimeError(
