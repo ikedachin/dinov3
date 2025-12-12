@@ -31,9 +31,27 @@ class DetectorWithProcessor(torch.nn.Module):
         self.detector = detector
         self.postprocessor = postprocessor
 
-    def forward(self, samples: list[torch.Tensor]):
-        outputs = self.detector(samples)
-        sizes_tensor = torch.tensor([sample.shape[1:] for sample in samples], device=samples[0].device)  # N * [3, H, W]
+    # original
+    # def forward(self, samples: list[torch.Tensor]):
+    #     outputs = self.detector(samples)
+    #     sizes_tensor = torch.tensor([sample.shape[1:] for sample in samples], device=samples[0].device)  # N * [3, H, W]
+    #     return self.postprocessor(outputs, target_sizes=sizes_tensor, original_target_sizes=sizes_tensor)
+
+    # change: accept either a single batched Tensor `(B,3,H,W)`, a single image Tensor `(3,H,W)`,
+    # or a list of `(3,H,W)` tensors for convenience.
+    def forward(self, samples):
+        if isinstance(samples, torch.Tensor):
+            if samples.dim() == 4:
+                samples_list = [s for s in samples]
+            elif samples.dim() == 3:
+                samples_list = [samples]
+            else:
+                raise ValueError(f"Unexpected tensor shape for samples: {samples.shape}")
+        else:
+            samples_list = samples
+
+        outputs = self.detector(samples_list)
+        sizes_tensor = torch.tensor([sample.shape[1:] for sample in samples_list], device=samples_list[0].device)  # N * [3, H, W]
         return self.postprocessor(outputs, target_sizes=sizes_tensor, original_target_sizes=sizes_tensor)
 
 
