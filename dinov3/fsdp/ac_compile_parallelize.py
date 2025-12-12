@@ -205,9 +205,15 @@ def ac_compile_parallelize(
             else:
                 model[k] = fully_shard(model[k], **fsdp_config, reshard_after_forward=True)
 
-    # 4/ Move to `cuda` device
+    # 4/ Move to device
+    # original
+    # for model in all_models:
+    #     model.to_empty(device="cuda")
+    # change
+    from dinov3.utils import get_device
+    device = get_device()
     for model in all_models:
-        model.to_empty(device="cuda")
+        model.to_empty(device=device)
 
     # 5/ FSDP2: Reshard immediately after forward for inference-only models
     for model in inference_only_models:

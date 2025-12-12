@@ -556,11 +556,19 @@ def do_train(cfg, model, resume=False):
             # and iteration != max_iter - 1
         ):
             do_test(cfg, model, f"training_{iteration}", process_group=process_subgroup)
-            torch.cuda.synchronize()
+            # original
+            # torch.cuda.synchronize()
+            # change
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
 
         # Checkpointing
         if (iteration + 1) % cfg.checkpointing.period == 0:
-            torch.cuda.synchronize()
+            # original
+            # torch.cuda.synchronize()
+            # change
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
             save_checkpoint(
                 ckpt_dir / str(iteration),
                 iteration=iteration,
@@ -612,11 +620,23 @@ def main(argv=None):
     model.prepare_for_distributed_training()
     # Fill all values with `nans` so that we identify
     # non-initialized values
+    # original
+    # model._apply(
+    #     lambda t: torch.full_like(
+    #         t,
+    #         fill_value=math.nan if t.dtype.is_floating_point else (2 ** (t.dtype.itemsize * 8 - 1)),
+    #         device="cuda",
+    #     ),
+    #     recurse=True,
+    # )
+    # change
+    from dinov3.utils import get_device
+    target_device = get_device()
     model._apply(
         lambda t: torch.full_like(
             t,
             fill_value=math.nan if t.dtype.is_floating_point else (2 ** (t.dtype.itemsize * 8 - 1)),
-            device="cuda",
+            device=target_device,
         ),
         recurse=True,
     )

@@ -78,12 +78,28 @@ def named_apply(
     return module
 
 
+def get_device() -> torch.device:
+    """
+    Get the appropriate device (cuda, mps, or cpu).
+    """
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
+
+
 def fix_random_seeds(seed: int = 31):
     """
     Fix random seeds.
     """
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    # original
+    # torch.cuda.manual_seed_all(seed)
+    # change
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
     random.seed(seed)
 

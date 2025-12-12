@@ -113,8 +113,12 @@ def build_model_for_eval(
         moduledict = nn.ModuleDict({"backbone": model})
         # Wrap with FSDP
         ac_compile_parallelize(moduledict, inference_only_models=[], cfg=config)
-        # Move to CUDA
-        model.to_empty(device="cuda")
+        # Move to device
+        # original
+        # model.to_empty(device="cuda")
+        # change
+        from dinov3.utils import get_device
+        model.to_empty(device=get_device())
         # Load checkpoint
         load_checkpoint(pretrained_weights, model=moduledict, strict_loading=True)
         shard_unsharded_model = False
@@ -123,7 +127,11 @@ def build_model_for_eval(
         from dinov3.checkpointer import init_model_from_checkpoint_for_evals
 
         # consolidated checkpoint codepath
-        model.to_empty(device="cuda")
+        # original
+        # model.to_empty(device="cuda")
+        # change
+        from dinov3.utils import get_device
+        model.to_empty(device=get_device())
         init_model_from_checkpoint_for_evals(model, pretrained_weights, "teacher")
     if shard_unsharded_model:
         logger.info("Sharding model")

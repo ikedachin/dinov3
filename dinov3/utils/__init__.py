@@ -9,6 +9,8 @@ from .utils import (
     count_parameters,
     fix_random_seeds,
     get_conda_env,
+    # change: expose get_device for top-level import compatibility
+    get_device,
     get_sha,
     named_apply,
     named_replace,
